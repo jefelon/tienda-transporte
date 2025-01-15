@@ -1,5 +1,6 @@
 # Vue 3 + Vite
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
-
 Tienda virtual para reservar asientos con el módulo de transportes facturalopro6 versión [AqpFact](https://www.aqpfact.pe), dudas o consultas al whatsapp +51950360472
+
+
+![Reserva asiento, sistema de transporte]([https://example.com/mi-imagen.png](https://i.ytimg.com/vi/7ZpdPK9i9bA/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLCLRyt14ntiSuDVfcg4D6Q9uk2bjg))
