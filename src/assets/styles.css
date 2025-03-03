@@ -1,0 +1,44 @@
+.bg-1{
+    background: #82cb00;
+}
+.text-1{
+    color: #82cb00;
+}
+
+/* Estilos del menú desplegable para pantallas pequeñas y grandes */
+.menu-toggle {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0; /* Elimina el padding para evitar el cambio de tamaño */
+}
+
+.menu-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 200px; /* Ajusta el ancho del menú */
+    z-index: 999999;
+}
+
+.menu-list li {
+    padding: 10px 15px;
+}
+
+.menu-list li a {
+    text-decoration: none;
+    color: #333;
+}
+
+.menu-list li:hover {
+    background-color: #f8f9fa;
+}

@@ -1,18 +1,19 @@
 <template>
-  <router-view />
+  <div class="d-flex flex-column min-vh-100">
+    <!-- Header -->
+    <Header />
+
+    <!-- Contenido principal (renderizado por vue-router) -->
+    <main class="flex-grow-1">
+      <router-view />
+    </main>
+
+    <!-- Footer -->
+    <Footer />
+  </div>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+<script setup lang="ts">
+import Header from "./components/Header.vue";
+import Footer from "./components/Footer.vue";
+</script>
