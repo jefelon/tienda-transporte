@@ -4,6 +4,8 @@ import router from './router';
 import { createPinia } from 'pinia';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './assets/styles.css';
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
 
 /* Importar el núcleo de Font Awesome */
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -25,4 +27,5 @@ app.use(createPinia());
 
 // Registrar el componente FontAwesomeIcon globalmente
 app.component('font-awesome-icon', FontAwesomeIcon);
+app.use(ElementPlus)
 app.mount('#app');

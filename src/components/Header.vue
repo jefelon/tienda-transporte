@@ -8,24 +8,26 @@
       </div>
 
       <!-- Logo -->
-      <a href="/" class="d-flex align-items-center">
-        <img src="../assets/logo.png" alt="Logo" class="img-fluid" style="height: 70px;">
-      </a>
+      <div class="flex-grow-1 text-center">
+        <a href="/">
+          <img src="../assets/logo.png" alt="Logo" class="img-fluid" style="max-height: 70px;">
+        </a>
+      </div>
 
       <!-- Grupo Derecho -->
       <div class="d-flex align-items-center position-relative">
-        <a href="/login?pathname=/" class="btn btn-light d-flex align-items-center">
+        <a href="/login?pathname=/" class="btn btn-light d-flex align-items-center d-none d-md-inline-block">
           <i class="bi bi-person-circle me-2"></i> Ingresar
         </a>
 
-        <!-- Botón hamburguesa (con cambio dinámico de icono) -->
+        <!-- Botón hamburguesa -->
         <button class="btn btn-light ms-2 menu-toggle" @click="toggleMenu">
-          <!-- Si el menú está abierto, muestra la "X", si está cerrado, muestra el ícono de hamburguesa -->
           <font-awesome-icon :icon="menuOpen ? ['fas', 'times'] : ['fas', 'bars']" />
         </button>
 
-        <!-- Menú desplegable (solo uno, siempre visible cuando se abre el menú hamburguesa) -->
+        <!-- Menú desplegable -->
         <ul v-if="menuOpen" class="menu-list">
+          <li class="d-lg-none"><a href="/cargo/seguimiento">Ingresar</a></li>
           <li><a href="/cargo/seguimiento">Seguimiento de envíos</a></li>
           <li><a href="/promociones">Promociones</a></li>
           <li><a href="/encuentranos">Encuéntranos</a></li>
