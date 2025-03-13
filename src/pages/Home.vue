@@ -80,10 +80,10 @@
 
         <!-- Encabezado Mejorado -->
         <div class="row py-2 text-center bg-1 text-white rounded-top">
-          <h3 class="col-3 fw-bold"> <strong>SALIDA</strong></h3>
-          <h3 class="col-3 fw-bold"> <strong>LLEGADA</strong></h3>
-          <h3 class="col-3 fw-bold">Asientos Disponibles</h3>
-          <h3 class="col-2 fw-bold">Precio</h3>
+          <h4 class="col-3 fw-bold"> <strong>SALIDA</strong></h4>
+          <h4 class="col-3 fw-bold"> <strong>LLEGADA</strong></h4>
+          <h4 class="col-3 fw-bold">Asientos Disponibles</h4>
+          <h4 class="col-2 fw-bold">Precio</h4>
           <span class="col-1"></span>
         </div>
 
@@ -112,7 +112,7 @@
 
               <div class="col-6 col-md-2">
                 <h6 class="fw-bold">{{ programacion.asientos_libres }} Asientos</h6>
-                <span class="text-muted small">{{ programacion.tipo_asiento }}°</span>
+                <span class="text-muted small">{{ programacion.tipo_asiento }}°120</span>
               </div>
 
               <div class="col-6 col-md-2 text-center">
@@ -121,7 +121,7 @@
               </div>
 
               <div class="col-12 col-md-1">
-                <button class="btn btn-outline-success w-100">Elegir Asiento</button>
+                <button class="btn btn-outline-success w-100" @click="elegirAsiento(programacion)">Elegir Asiento</button>
               </div>
 
               <div class="col-12 text-center mt-2">
@@ -145,7 +145,6 @@
 import { useApi } from '@/composables/useApi';
 import { useStore } from '@/store';
 import { useRouter } from 'vue-router';
-import { ElLoading } from 'element-plus'
 import { computed, onMounted, ref } from 'vue';
 
 export default {
@@ -221,7 +220,7 @@ export default {
 
     const listarOrigenesDestinos = async () => {
       try {
-        const { data } = await api.get('/transporte/origenes-destinos');
+        const { data } = await api.get('/api/transporte/origenes-destinos');
         origenes.value = data.origenes;
         destinos.value = data.destinos;
       } catch (error) {
@@ -236,7 +235,7 @@ export default {
     const buscarProgramaciones = async () => {
       try {
         loading.value = true
-        const { data } = await api.post('/transporte/programaciones', {
+        const { data } = await api.post('/api/transporte/programaciones', {
           fecha_salida: fecha.value,
           origenSeleccionado: origenSeleccionado.value,
           destinoSeleccionado: destinoSeleccionado.value,
@@ -249,6 +248,7 @@ export default {
               Number(h.transporteTerminalDestinoId) === Number(destinoSeleccionado.value)
           );
 
+          console.log(data.programaciones)
           if (!programaciones.value.length) {
             console.error('No se encontraron horarios disponibles.');
           }
@@ -263,6 +263,13 @@ export default {
         programaciones.value = [];
       }
     };
+
+    function elegirAsiento(programacion) {
+      router.push({
+        name: 'Seats',
+        query: { programacion: encodeURIComponent(JSON.stringify(programacion)) }
+      });
+    }
 
     return {
       loading,
@@ -281,7 +288,8 @@ export default {
       formatearDuracion,
       listarOrigenesDestinos,
       filtrarDestinos,
-      buscarProgramaciones
+      buscarProgramaciones,
+      elegirAsiento
     };
   },
 };

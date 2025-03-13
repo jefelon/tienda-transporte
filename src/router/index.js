@@ -8,7 +8,10 @@ import Success from '@/pages/Success.vue';
 const routes = [
     { path: '/', name: 'Home', component: Home },
     { path: '/buscar', name: 'Search', component: Search },
-    { path: '/asientos/:rutaId', name: 'Seats', component: Seats },
+    { path: '/asientos', name: 'Seats', component: Seats, props: route => ({
+            programacion: route.query.programacion ? JSON.parse(decodeURIComponent(route.query.programacion)) : null
+        })
+    },
     { path: '/checkout', name: 'Checkout', component: Checkout },
     { path: '/exito', name: 'Success', component: Success },
 ];
