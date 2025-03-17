@@ -63,7 +63,7 @@
         <h3>Asientos seleccionados</h3>
         <!-- Fila que contendrá las tarjetas -->
         <div class="row">
-          <div v-if="selectedSeats.length" v-for="(seat, index) in selectedSeats" :key="seat.id" class="col-md-6 mb-3">
+          <div v-if="selectedSeats.length" v-for="(seat, index) in selectedSeats" :key="seat.asiento_id" class="col-md-6 mb-3">
             <div class="card">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <div class="pasajero_asiento icono">
@@ -79,76 +79,247 @@
                 </div>
               </div>
               <div class="card-body">
-                <form class="row g-3">
+                <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label">Tipo Documento</label>
-                    <select class="form-select" v-model="seat.tipoDocumento">
-                      <option value="19">DNI</option>
-                      <option value="20">Carnet de Extranjeria</option>
-                      <option value="21">Pasaporte</option>
+                    <select class="form-select" v-model="seat.identity_document_type_id">
+                      <option value="1">DNI</option>
+                      <option value="4">Carnet de Extranjeria</option>
+                      <option value="7">Pasaporte</option>
                     </select>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">N° Documento</label>
                     <div class="input-group">
-                      <input type="text" maxlength="8" class="form-control" placeholder="Documento" v-model="seat.numeroDocumento">
-                      <button class="btn btn-outline-secondary" type="button">Buscar</button>
+                      <input type="text" maxlength="8" class="form-control" placeholder="Documento" v-model="seat.number">
+                      <button class="btn btn-secondary"  :disabled="seat.identity_document_type_id!=='1'" type="button" @click="consultar(seat)">Buscar</button>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Nombre</label>
-                    <input type="text" class="form-control" placeholder="Nombre" v-model="seat.nombres">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Apellidos</label>
-                    <input type="text" class="form-control" placeholder="Paterno" v-model="seat.apellidos">
+                  <div class="col-md-12">
+                    <label class="form-label">Apellidos y nombres</label>
+                    <input type="text" class="form-control" placeholder="Paterno" v-model="seat.name">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Correo</label>
-                    <input type="email" class="form-control" placeholder="Correo" v-model="seat.correo">
+                    <input type="email" class="form-control" placeholder="Correo" v-model="seat.email">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Celular</label>
-                    <input type="tel" class="form-control" placeholder="Celular" v-model="seat.celular">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Sexo</label>
-                    <select class="form-select" v-model="seat.sexo">
-                      <option value="F">Mujer</option>
-                      <option value="M">Hombre</option>
-                    </select>
+                    <input type="tel" class="form-control" placeholder="Celular" v-model="seat.telephone">
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Edad</label>
                     <input type="number" class="form-control" v-model="seat.edad">
                   </div>
-                </form>
+                  <div class="col-md-6">
+                    <label class="form-label">Confirma</label>
+                    <el-button
+                        type="warning"
+                        :loading="loading"
+                        class="form-control"
+                        @click="confirmarPasajero(seat)">
+                      Confirmar pasajero
+                    </el-button>
+                  </div>
+                </div>
               </div>
-              <div class="card-footer">
-                <div class="d-flex justify-content-end">
+              <div class="card-footer text-center">
+                <div class="precio">
                   <strong>Precio: S/ 95</strong>
                 </div>
               </div>
             </div><!-- /.card -->
           </div><!-- /.col-md-6 -->
         </div><!-- /.row -->
+        <div class="row mt-5">
+          <div class="col-md-12 text-center">
+            <button class="btn btn-success w-50" @click="pagar">Pagar</button>
+          </div>
+        </div>
       </div><!-- /.col-12 .col-lg-10 -->
     </div><!-- /.row .justify-content-center -->
 
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 import { useSeats } from '@/composables/useSeats'
 import { useStore } from '@/store'
+import { ElNotification } from 'element-plus'
 
-export default {
-  name: 'SeatsAqp',
-  setup() {
+
+    const loading = ref(false)
     const store = useStore()
-    const { asientos, fetchAsientos, reservarAsiento, programacion } = useSeats()
+    const { asientos, fetchAsientos, reservarAsiento, programacion, consultarCliente, guardarPasajero, generarComprobante } = useSeats()
+
+    //funcion para obtener datos de la persona o empresa
+    async function consultar(seat) {
+      try {
+        const response = await consultarCliente(seat.identity_document_type_id, seat.number);
+        if (response.success) {
+          const data = response.data;
+          console.log(data);
+          seat.pasajero_id = data.id;
+          seat.name = data.name;
+          seat.edad = data.edad ?? '';
+          seat.telephone = data.telephone ?? '';
+          seat.email = data.email ?? '';
+        }
+      } catch (error) {
+        console.error("Error consultando al cliente:", error);
+      }
+    }
+
+    // función para confirmar el pasajero
+    async function confirmarPasajero(seat) {
+      if (!seat.number) {
+        return mostrarNotificacion("error", "Complete el número de documento del pasajero");
+      }
+      if (!seat.name) {
+        return mostrarNotificacion("error", "Complete el nombre del pasajero");
+      }
+      if (!seat.edad) {
+        return mostrarNotificacion("error", "Complete la edad del pasajero");
+      }
+      if (!seat.email) {
+        return mostrarNotificacion("error", "Complete el correo del pasajero");
+      }
+      if (!seat.telephone) {
+        return mostrarNotificacion("error", "Complete el celular del pasajero");
+      }
+
+      loading.value = true
+      try {
+        const pasajero = {
+          country_id: "PE",
+          type: "customers",
+          identity_document_type_id: seat.identity_document_type_id,
+          number: seat.number,
+          name: seat.name,
+          edad: seat.edad,
+          telephone: seat.telephone,
+          email:seat.email
+        };
+
+        const response = await guardarPasajero(pasajero);
+        if (response.success) {
+          seat.pasajero_id = response.id;
+          mostrarNotificacion("success", "Pasajero confirmado exitosamente");
+          console.log("Pasajero modificado el id:", seat);
+        }
+      } catch (error) {
+        console.error("Error al generar boletas:", error);
+      } finally {
+        loading.value = false
+      }
+    }
+    //función para procesar pago
+    async function pagar() {
+      if (selectedSeats.value.length === 0) {
+        console.error("No se han seleccionado asientos");
+        return;
+      }
+
+      // Mapeamos cada asiento seleccionado a la estructura de boleta
+      const boletas = selectedSeats.value.map(seat => {
+        // Convertir el precio a número
+        const precio = parseFloat(seat.precio);
+        const porcentaje_igv = 18.00;
+        // Calculamos la base imponible y el impuesto
+        const valorventa = precio / 1.18;
+        const igv = precio - valorventa;
+
+        return {
+          // Datos del comprobante
+          serie_documento: "B001",
+          numero_documento: "#", // Aquí podrías aplicar lógica de numeración
+          fecha_de_emision: new Date().toLocaleDateString('en-CA'),
+          hora_de_emision: new Date().toLocaleTimeString('en-GB'),
+          codigo_tipo_operacion: "0101",
+          codigo_tipo_documento: "03",
+          codigo_tipo_moneda: "PEN",
+          fecha_de_vencimiento: new Date().toISOString().split("T")[0],
+          // Datos del cliente, extraídos del asiento seleccionado
+          datos_del_cliente_o_receptor: {
+            codigo_tipo_documento_identidad: seat.identity_document_type_id,
+            numero_documento: seat.number,
+            apellidos_y_nombres_o_razon_social: seat.name,
+            codigo_pais: "PE",
+            ubigeo: "150101",
+            direccion: "Av. 2 de Mayo",
+            correo_electronico: seat.email,
+            telefono: seat.telephone
+          },
+          // Totales de la boleta
+          totales: {
+            total_exportacion: 0.00,
+            total_operaciones_gravadas: (programacion.pasaje_afecto_igv === 1) ? valorventa : 0.00,
+            total_operaciones_inafectas: 0.00,
+            total_operaciones_exoneradas: (programacion.pasaje_afecto_igv === 1) ? 0.00 : precio,
+            total_operaciones_gratuitas: 0.00,
+            total_igv: (programacion.pasaje_afecto_igv === 1) ? igv : 0.00,
+            total_impuestos: (programacion.pasaje_afecto_igv === 1) ? igv : 0.00,
+            total_valor: (programacion.pasaje_afecto_igv === 1) ? valorventa : precio,
+            total_venta: precio
+          },
+          // Items: detalle del pasaje
+          items: [
+            {
+              codigo_interno: seat.codigo_item,
+              descripcion: seat.nombre_item,
+              codigo_producto_sunat: "",
+              codigo_producto_gsl: "",
+              unidad_de_medida: "ZZ",
+              cantidad: 1,
+              valor_unitario: (programacion.pasaje_afecto_igv === 1) ? valorventa : precio,
+              codigo_tipo_precio: "01",
+              precio_unitario: precio,
+              codigo_tipo_afectacion_igv: (programacion.pasaje_afecto_igv === 1) ? "10" : "20",
+              total_base_igv: (programacion.pasaje_afecto_igv === 1) ? valorventa : precio,
+              porcentaje_igv: (programacion.pasaje_afecto_igv === 1) ? porcentaje_igv : 0.00,
+              total_igv: (programacion.pasaje_afecto_igv === 1) ? igv : 0.00,
+              total_impuestos: (programacion.pasaje_afecto_igv === 1) ? igv : 0.00,
+              total_valor_item: (programacion.pasaje_afecto_igv === 1) ? valorventa : precio,
+              total_item: precio,
+            }
+          ],
+          // Datos adicionales para guardar el pasaje
+          pasajero_id: seat.pasajero_id,
+          cliente_id: seat.cliente_id,
+          asiento_id: seat.asiento_id,
+          asiento_numero: seat.asiento,
+          identity_document_type_id: seat.identity_document_type_id,
+          number: seat.number,
+          name: seat.name,
+          email: seat.email,
+          telephone: seat.telephone,
+          edad: seat.edad,
+          precio : seat.precio,
+          vehiculo_ruta_id: seat.vehiculo_ruta_id,
+          origen_id: seat.origen_id,
+          destino_id: seat.destino_id,
+          padre: [],
+          ninios: [],
+          fecha_salida:seat.fecha_salida
+        }
+      });
+
+      try {
+        // Enviar cada boleta en una petición separada
+        const promises = boletas.map(boleta =>
+            generarComprobante(boleta)
+        );
+        const responses = await Promise.all(promises);
+        console.log("Boletas generadas:", responses);
+        socket.emit('venta-completada', true)
+        // Puedes limpiar selectedSeats o redirigir según corresponda
+      } catch (error) {
+        console.error("Error al generar boletas:", error);
+      }
+    }
+
 
     // Función para reservar (si es necesaria)
     async function reservar(asiento) {
@@ -165,29 +336,38 @@ export default {
     // Función para seleccionar/deseleccionar asientos
     function toggleSeat(asiento) {
       if (asiento.estado !== '1') return
-      const index = selectedSeats.value.findIndex(s => s.id === asiento.id)
+      const index = selectedSeats.value.findIndex(s => s.asiento_id === asiento.id)
       if (index === -1) {
         selectedSeats.value.push({
-          id: asiento.id,
+          asiento_id: asiento.id,
           asiento: asiento.numero_asiento,
-          tipoDocumento: '19',
-          numeroDocumento: '',
-          nombres: '',
-          paterno: '',
-          materno: '',
-          correo: '',
-          celular: '',
-          sexo: '',
-          fechaNacimiento: ''
+          pasajero_id:null,
+          cliente_id:null,
+          identity_document_type_id: '1',
+          number: '',
+          name: '',
+          email: '',
+          telephone: '',
+          edad: '',
+          precio: asiento.precio,
+          vehiculo_ruta_id: programacion.vehiculo_ruta_id,
+          origen_id: programacion.transporteTerminalOrigenId,
+          destino_id: programacion.transporteTerminalDestinoId,
+          fecha_salida :programacion.fecha_salida,
+          codigo_item:programacion.codigo_item,
+          nombre_item:programacion.nombre_item,
         })
       } else {
         selectedSeats.value.splice(index, 1)
       }
+
+      console.log("selectedSeats")
+      console.log(selectedSeats)
     }
 
     // Función para verificar si un asiento está seleccionado
     function isSelected(asiento) {
-      return selectedSeats.value.some(s => s.id === asiento.id)
+      return selectedSeats.value.some(s => s.asiento_id === asiento.id)
     }
 
     // Función para eliminar un asiento de la lista de seleccionados
@@ -208,10 +388,10 @@ export default {
     const socketUrl = `${baseUrl}:2053/${tenant}`
     console.log("Conectando a socket en:", socketUrl)
 
-    // Conexión al socket
+    //Conexión al socket
     const socket = io(socketUrl, { transports: ['websocket'] })
 
-    // Logs para confirmar la conexión y posibles errores
+    //Logs para confirmar la conexión y posibles errores
     socket.on('connect', () => {
       console.log('Socket conectado:', socket.id)
     })
@@ -220,7 +400,7 @@ export default {
       console.error('Error de conexión:', err)
     })
 
-    // Escucha del evento "venta-completada"
+    //Escucha del evento "venta-completada"
     onMounted(() => {
       socket.on('venta-completada', (data) => {
         console.log('Evento "venta-completada" recibido:', data)
@@ -237,17 +417,14 @@ export default {
       console.log('Socket desconectado')
     })
 
-    return {
-      asientos,
-      programacion,
-      reservar,
-      selectedSeats,
-      toggleSeat,
-      isSelected,
-      removeSeat,
+    function mostrarNotificacion(type, message) {
+      ElNotification({
+        title: "Mensaje",
+        message: message,
+        type: type,
+        position: "top-left"
+      })
     }
-  }
-}
 </script>
 
 

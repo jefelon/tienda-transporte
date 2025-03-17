@@ -32,6 +32,8 @@ export function useSeats() {
             terminal_inicio: programacion.transporteTerminalOrigenId,
             terminal_fin: programacion.transporteTerminalDestinoId,
             vehiculo_id: programacion.vehiculo_id,
+            tramo_id:programacion.tramo_id,
+            tipo_vehiculo_id:programacion.tipo_vehiculo_id,
         };
         const { data } = await api.post(`/api/transporte/asientos`, payload);
         asientos.value = data;
@@ -43,5 +45,24 @@ export function useSeats() {
         return data;
     }
 
-    return { asientos,programacion, fetchAsientos, reservarAsiento };
+    async function consultarCliente(type,number) {
+        const { data } = await api.get(`/api/transporte/cliente/${type}/${number}`);
+        return data;
+    }
+
+    async function generarComprobante(document) {
+        const { data } = await api.post(`/api/transporte/generar-comprobante`,document);
+        return data;
+    }
+    async function guardarPasaje(selectedSeats) {
+        const { data } = await api.post(`/api/transporte/guardar-pasaje`,selectedSeats);
+        return data;
+    }
+
+    async function guardarPasajero(pasajero) {
+        const { data } = await api.post(`/api/transporte/guardar-pasajero`,pasajero);
+        return data;
+    }
+
+    return { asientos,programacion, fetchAsientos, reservarAsiento, consultarCliente,generarComprobante, guardarPasajero, guardarPasaje };
 }
