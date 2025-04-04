@@ -131,11 +131,30 @@
             </div><!-- /.card -->
           </div><!-- /.col-md-6 -->
         </div><!-- /.row -->
+
         <div class="row mt-5">
           <div class="col-md-12 text-center">
+            <div class="form-check form-switch d-inline-block" style="transform: scale(1.5);">
+              <input class="form-check-input" type="checkbox" role="switch" id="switchFactura" v-model="deseaFactura" />
+              <label class="form-check-label ms-2" for="switchFactura">¿Desea factura?</label>
+            </div>
+          </div>
+          <div v-if="deseaFactura" class="row mt-3 text-center">
+            <div class="col-md-2">
+              <input type="text" v-model="datosFactura.ruc" class="form-control" placeholder="RUC" @change="buscarEmpresa" />
+            </div>
+            <div class="col-md-4">
+              <input type="text" v-model="datosFactura.razonSocial" class="form-control" placeholder="Razón Social" />
+            </div>
+            <div class="col-md-6">
+              <input type="text" v-model="datosFactura.direccion" class="form-control" placeholder="Dirección" />
+            </div>
+          </div>
+          <div class="col-12 text-center mt-5">
             <button class="btn btn-success w-50" @click="pagar">Pagar</button>
           </div>
         </div>
+
       </div><!-- /.col-12 .col-lg-10 -->
     </div><!-- /.row .justify-content-center -->
 
@@ -143,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import {ref, onMounted, onUnmounted, reactive} from 'vue'
 import { io } from 'socket.io-client'
 import { useSeats } from '@/composables/useSeats'
 import { useStore } from '@/store'
@@ -151,6 +170,13 @@ import { ElNotification } from 'element-plus'
 
 
     const loading = ref(false)
+    const deseaFactura = ref(false);
+    const datosFactura = reactive({
+      ruc: '',
+      razonSocial: '',
+      direccion: '',
+      ubigeo :''
+    });
     const store = useStore()
     const { asientos, fetchAsientos, reservarAsiento, programacion, consultarCliente, guardarPasajero, generarComprobante } = useSeats()
 
@@ -167,6 +193,24 @@ import { ElNotification } from 'element-plus'
           seat.telephone = data.telephone ?? '';
           seat.email = data.email ?? '';
         }
+      } catch (error) {
+        console.error("Error consultando al cliente:", error);
+      }
+    }
+
+    async function buscarEmpresa(){
+      try {
+        if(datosFactura.ruc.length===11){
+          const response = await consultarCliente(6, datosFactura.ruc);
+          if (response.success) {
+            const data = response.data;
+            console.log(data);
+            datosFactura.razonSocial = data.name
+            datosFactura.direccion = data.address
+            datosFactura.ubigeo = data.ubigeo
+          }
+        }
+
       } catch (error) {
         console.error("Error consultando al cliente:", error);
       }
@@ -233,22 +277,22 @@ import { ElNotification } from 'element-plus'
 
         return {
           // Datos del comprobante
-          serie_documento: "B001",
+          serie_documento: deseaFactura ? seat.serie_factura : seat.serie_boleta,
           numero_documento: "#", // Aquí podrías aplicar lógica de numeración
           fecha_de_emision: new Date().toLocaleDateString('en-CA'),
           hora_de_emision: new Date().toLocaleTimeString('en-GB'),
           codigo_tipo_operacion: "0101",
-          codigo_tipo_documento: "03",
+          codigo_tipo_documento: deseaFactura ? '01' : '03',
           codigo_tipo_moneda: "PEN",
           fecha_de_vencimiento: new Date().toISOString().split("T")[0],
           // Datos del cliente, extraídos del asiento seleccionado
           datos_del_cliente_o_receptor: {
-            codigo_tipo_documento_identidad: seat.identity_document_type_id,
-            numero_documento: seat.number,
-            apellidos_y_nombres_o_razon_social: seat.name,
+            codigo_tipo_documento_identidad: deseaFactura ? '6': seat.identity_document_type_id,
+            numero_documento: deseaFactura ? datosFactura.ruc : seat.number,
+            apellidos_y_nombres_o_razon_social: deseaFactura ? datosFactura.razonSocial: seat.name,
             codigo_pais: "PE",
-            ubigeo: "150101",
-            direccion: "Av. 2 de Mayo",
+            ubigeo: deseaFactura ? datosFactura.ubigeo : '',
+            direccion: deseaFactura ? datosFactura.direccion : '',
             correo_electronico: seat.email,
             telefono: seat.telephone
           },
@@ -307,19 +351,20 @@ import { ElNotification } from 'element-plus'
       });
 
       try {
-        // Enviar cada boleta en una petición separada
-        const promises = boletas.map(boleta =>
-            generarComprobante(boleta)
-        );
-        const responses = await Promise.all(promises);
+        const responses = [];
+        for (const boleta of boletas) {
+          const response = await generarComprobante(boleta);
+          responses.push(response);
+          // Retardo de 1 segundo entre cada boleta (ajusta el tiempo según tus necesidades)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         console.log("Boletas generadas:", responses);
-        socket.emit('venta-completada', true)
-        // Puedes limpiar selectedSeats o redirigir según corresponda
+        socket.emit('venta-completada', true);
+        // Aquí puedes limpiar selectedSeats o redirigir según corresponda
       } catch (error) {
         console.error("Error al generar boletas:", error);
       }
     }
-
 
     // Función para reservar (si es necesaria)
     async function reservar(asiento) {
@@ -356,6 +401,8 @@ import { ElNotification } from 'element-plus'
           fecha_salida :programacion.fecha_salida,
           codigo_item:programacion.codigo_item,
           nombre_item:programacion.nombre_item,
+          serie_boleta:programacion.serie_boleta,
+          serie_factura:programacion.serie_factura
         })
       } else {
         selectedSeats.value.splice(index, 1)
